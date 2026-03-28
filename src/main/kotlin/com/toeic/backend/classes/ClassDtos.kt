@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateClassRequest(val name: String, val description: String? = null)
-
 @Serializable
 data class JoinClassRequest(val code: String)
 

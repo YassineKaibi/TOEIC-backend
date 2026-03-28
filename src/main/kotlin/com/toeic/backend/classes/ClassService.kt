@@ -58,6 +58,15 @@ class ClassService(
         enrollmentRepository.delete(classId, studentId)
     }
 
+    suspend fun leaveClass(studentId: String, classId: String) {
+        val clazz = classRepository.findById(classId)
+            ?: throw NotFoundException("Class not found", "CLASS_NOT_FOUND")
+        if (!enrollmentRepository.exists(clazz.id, studentId)) {
+            throw ForbiddenException("You are not enrolled in this class", "NOT_ENROLLED")
+        }
+        enrollmentRepository.delete(clazz.id, studentId)
+    }
+
     private suspend fun verifyClassOwnership(teacherId: String, classId: String) {
         val clazz = classRepository.findById(classId)
             ?: throw NotFoundException("Class not found", "CLASS_NOT_FOUND")

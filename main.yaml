@@ -1,0 +1,486 @@
+openapi: 3.0.3
+info:
+  title: TOEIC Platform API
+  description: REST API for TOEIC — a Tunisian TOEIC-focused educational app
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development (via nginx proxy)
+
+tags:
+  - name: Auth
+    description: Authentication and registration
+  - name: Classes
+    description: Class management
+  - name: Teachers
+    description: Teacher-specific endpoints
+  - name: Students
+    description: Student-specific endpoints
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Invalid credentials
+                errorCode: INVALID_CREDENTIALS
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful — user is logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Invalid role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Invalid role
+                errorCode: INVALID_ROLE
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Email already registered
+                errorCode: EMAIL_ALREADY_EXISTS
+
+  /classes:
+    post:
+      tags: [Classes]
+      summary: Create a class
+      operationId: createClass
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassRequest"
+      responses:
+        "201":
+          description: Class created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassResponse"
+        "403":
+          description: Teacher role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Role 'teacher' required"
+                errorCode: TEACHER_ROLE_REQUIRED
+
+  /classes/join:
+    post:
+      tags: [Classes]
+      summary: Join a class by code
+      operationId: joinClass
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinClassRequest"
+      responses:
+        "200":
+          description: Joined successfully
+        "400":
+          description: Invalid join code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Invalid join code
+                errorCode: WRONG_CODE
+        "403":
+          description: Student role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Role 'student' required"
+                errorCode: STUDENT_ROLE_REQUIRED
+        "409":
+          description: Already joined this class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Already joined this class
+                errorCode: ALREADY_JOINED
+
+  /classes/{classId}/students:
+    get:
+      tags: [Classes]
+      summary: List students in a class
+      operationId: getClassStudents
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/classId"
+      responses:
+        "200":
+          description: Student list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClassStudentItem"
+        "204":
+          description: No students enrolled
+        "403":
+          description: Not the class owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "You don't own this class"
+                errorCode: NOT_CLASS_OWNER
+        "404":
+          description: Class not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Class not found
+                errorCode: CLASS_NOT_FOUND
+
+  /classes/{classId}/students/{studentId}:
+    delete:
+      tags: [Classes]
+      summary: Remove a student from a class
+      operationId: removeStudent
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/classId"
+        - $ref: "#/components/parameters/studentId"
+      responses:
+        "204":
+          description: Student removed
+        "403":
+          description: Not the class owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "You don't own this class"
+                errorCode: NOT_CLASS_OWNER
+        "404":
+          description: Class not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Class not found
+                errorCode: CLASS_NOT_FOUND
+
+  /teachers/me/classes:
+    get:
+      tags: [Teachers]
+      summary: List my classes (teacher)
+      operationId: getTeacherClasses
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Teacher's class list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TeacherClassItem"
+        "204":
+          description: No classes yet
+        "403":
+          description: Teacher role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Role 'teacher' required"
+                errorCode: TEACHER_ROLE_REQUIRED
+
+  /students/me/classes:
+    get:
+      tags: [Students]
+      summary: List my classes (student)
+      operationId: getStudentClasses
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Student's enrolled classes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StudentClassItem"
+        "204":
+          description: Not enrolled in any class
+        "403":
+          description: Student role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Role 'student' required"
+                errorCode: STUDENT_ROLE_REQUIRED
+
+  /students/me/classes/{classId}:
+    delete:
+      tags: [Students]
+      summary: Leave a class
+      operationId: leaveClass
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/classId"
+      responses:
+        "204":
+          description: Left the class
+        "403":
+          description: Not enrolled or not a student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notStudent:
+                  summary: Student role required
+                  value:
+                    message: "Role 'student' required"
+                    errorCode: STUDENT_ROLE_REQUIRED
+                notEnrolled:
+                  summary: Not enrolled
+                  value:
+                    message: You are not enrolled in this class
+                    errorCode: NOT_ENROLLED
+        "404":
+          description: Class not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Class not found
+                errorCode: CLASS_NOT_FOUND
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    classId:
+      name: classId
+      in: path
+      required: true
+      schema:
+        type: string
+    studentId:
+      name: studentId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [fullName, email, password, role]
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+          enum: [teacher, student]
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserInfo"
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [teacher, student]
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errorCode:
+          type: string
+
+    CreateClassRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    JoinClassRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+
+    ClassResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        joinCode:
+          type: string
+        teacherId:
+          type: string
+        createdAt:
+          type: string
+
+    TeacherClassItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        studentsCount:
+          type: integer
+        joinCode:
+          type: string
+
+    StudentClassItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        teacher:
+          $ref: "#/components/schemas/TeacherInfo"
+        joinedAt:
+          type: string
+
+    TeacherInfo:
+      type: object
+      properties:
+        fullName:
+          type: string
+
+    ClassStudentItem:
+      type: object
+      properties:
+        id:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+        joinedAt:
+          type: string

@@ -219,4 +219,61 @@ class ClassRoutesTest {
 		  val remainingItems = afterResponse.body<JsonObject>()["items"]!!.jsonArray
 		  assertEquals(1, remainingItems.size)
     }
+
+    @Test
+    fun `student can leave a class they joined`() = testApplication {
+        val client = configureTestApp()
+        val teacherToken = client.login("mondher@thee.tn")
+        val studentToken = client.login("yassine@thee.tn")
+
+        // Teacher creates a class
+        val createResponse = client.post("/api/v1/classes") {
+            contentType(ContentType.Application.Json)
+            withAuth(teacherToken)
+            setBody(mapOf("name" to "Leave Test Class"))
+        }
+        val joinCode = createResponse.body<JsonObject>()["joinCode"]!!.jsonPrimitive.content
+        val classId = createResponse.body<JsonObject>()["id"]!!.jsonPrimitive.content
+
+        // Student joins
+        client.post("/api/v1/classes/join") {
+            contentType(ContentType.Application.Json)
+            withAuth(studentToken)
+            setBody(mapOf("code" to joinCode))
+        }
+
+        // Student leaves
+        val leaveResponse = client.delete("/api/v1/students/me/classes/$classId") {
+            withAuth(studentToken)
+        }
+        assertEquals(HttpStatusCode.NoContent, leaveResponse.status)
+
+        // Student's class list should be empty
+        val classesResponse = client.get("/api/v1/students/me/classes") {
+            withAuth(studentToken)
+        }
+        assertEquals(HttpStatusCode.NoContent, classesResponse.status)
+    }
+
+    @Test
+    fun `leaving a class without being enrolled returns 403`() = testApplication {
+        val client = configureTestApp()
+        val teacherToken = client.login("mondher@thee.tn")
+        val studentToken = client.login("yassine@thee.tn")
+
+        // Teacher creates a class
+        val createResponse = client.post("/api/v1/classes") {
+            contentType(ContentType.Application.Json)
+            withAuth(teacherToken)
+            setBody(mapOf("name" to "Not Enrolled Class"))
+        }
+        val classId = createResponse.body<JsonObject>()["id"]!!.jsonPrimitive.content
+
+        // Student tries to leave without joining
+        val response = client.delete("/api/v1/students/me/classes/$classId") {
+            withAuth(studentToken)
+        }
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+        assertEquals("NOT_ENROLLED", response.body<JsonObject>()["errorCode"]?.jsonPrimitive?.content)
+    }
 }

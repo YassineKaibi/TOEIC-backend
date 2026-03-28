@@ -12,5 +12,11 @@ fun Route.authRoutes(authService: AuthService) {
             val response = authService.login(request)
             call.respond(HttpStatusCode.OK, response)
         }
+
+        post("/register") {
+            val request = call.receive<RegisterRequest>()
+            val response = authService.register(request)
+            call.respond(HttpStatusCode.Created, response)
+        }
     }
 }
