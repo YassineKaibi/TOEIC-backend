@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "toeic-client"
+version = "0.1.0"
+description = "Python client for the TOEIC Platform API"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-httpx>=0.34",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/toeic_client"]
