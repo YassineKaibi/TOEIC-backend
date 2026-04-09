@@ -6,13 +6,15 @@ import com.toeic.backend.classes.ClassService
 import com.toeic.backend.classes.classRoutes
 import com.toeic.backend.students.studentRoutes
 import com.toeic.backend.teachers.teacherRoutes
+import com.toeic.backend.quizzes.QuizService
+import com.toeic.backend.quizzes.quizRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Application.configureRouting(authService: AuthService, classService: ClassService) {
+fun Application.configureRouting(authService: AuthService, classService: ClassService, quizService: QuizService) {
     routing {
         route("/api/v1") {
             get("/health") {
@@ -25,6 +27,7 @@ fun Application.configureRouting(authService: AuthService, classService: ClassSe
                 classRoutes(classService)
                 teacherRoutes(classService)
                 studentRoutes(classService)
+                quizRoutes(quizService)
             }
         }
     }

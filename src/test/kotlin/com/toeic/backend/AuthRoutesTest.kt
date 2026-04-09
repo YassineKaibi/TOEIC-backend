@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class AuthRoutesTest {
-
+    
     @Test
     fun `login with valid credentials returns token and user info`() = testApplication {
         val client = configureTestApp()

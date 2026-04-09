@@ -52,6 +52,12 @@ dependencies {
     testImplementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version")
     testImplementation("com.h2database:h2:2.3.232")
+
+
+    implementation("org.jetbrains.exposed:exposed-java-time:0.46.0")
+
+
+
 }
 
 java {
