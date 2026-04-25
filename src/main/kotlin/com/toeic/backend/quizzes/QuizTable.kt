@@ -2,8 +2,7 @@ package com.toeic.backend.quizzes
 
 import com.toeic.backend.users.UsersTable
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.datetime
-import java.time.LocalDateTime
+import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 object QuizzesTable : Table("quizzes") {
     val id = varchar("id", 50)
@@ -12,8 +11,8 @@ object QuizzesTable : Table("quizzes") {
     val timeLimitMinutes = integer("time_limit_minutes").nullable()
     val teacherId = varchar("teacher_id", 50).references(UsersTable.id)
     val archived = bool("archived").default(false)
-    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
-    val updatedAt = datetime("updated_at").clientDefault { LocalDateTime.now() }
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
 
     override val primaryKey = PrimaryKey(id)
 }

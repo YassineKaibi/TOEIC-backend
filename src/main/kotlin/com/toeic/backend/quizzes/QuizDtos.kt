@@ -55,3 +55,22 @@ data class QuestionResponse(
     val options: List<String>,
     val correctAnswer: String
 )
+
+@Serializable
+data class QuestionStudentResponse(
+    val id: String,
+    val quizId: String,
+    val prompt: String,
+    val order: Int,
+    val points: Double,
+    val options: List<String>
+)
+
+fun QuestionResponse.toStudentResponse() = QuestionStudentResponse(
+    id = id,
+    quizId = quizId,
+    prompt = prompt,
+    order = order,
+    points = points,
+    options = options
+)
