@@ -5,7 +5,6 @@ import com.toeic.backend.ai.AiQuizResultRequest
 import com.toeic.backend.common.AppException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ReceiveChannel
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
@@ -30,7 +29,7 @@ class SubmissionDispatcher(
     // Exposed for testing only
     fun channelCount(): Int = perStudent.size
 
-    private suspend fun processQueue(studentId: String, ch: ReceiveChannel<AiQuizResultRequest>) {
+    private suspend fun processQueue(studentId: String, ch: Channel<AiQuizResultRequest>) {
         try {
             while (true) {
                 val payload = withTimeoutOrNull(idleTimeoutMs) { ch.receive() } ?: break
@@ -47,7 +46,13 @@ class SubmissionDispatcher(
             }
         } finally {
             perStudent.remove(studentId, ch)
-            (ch as Channel).cancel()
+            // Drain items that arrived in the race window between timeout and remove
+            var leftover = ch.tryReceive().getOrNull()
+            while (leftover != null) {
+                dispatch(leftover)
+                leftover = ch.tryReceive().getOrNull()
+            }
+            ch.cancel()
         }
     }
 }
