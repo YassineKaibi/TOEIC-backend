@@ -1,6 +1,7 @@
 package com.toeic.backend.submissions
 
 import com.toeic.backend.common.BadRequestException
+import com.toeic.backend.common.Role
 import com.toeic.backend.common.requireRole
 import com.toeic.backend.common.userId
 import io.ktor.http.HttpStatusCode
@@ -13,7 +14,7 @@ import io.ktor.server.routing.route
 fun Route.submissionRoutes(submissionService: SubmissionService) {
     route("/quizzes/{quizId}/submissions") {
         post {
-            call.requireRole("student")
+            call.requireRole(Role.STUDENT)
             val quizId = call.parameters["quizId"]
                 ?: throw BadRequestException("Missing quizId", "MISSING_PARAM")
             val dto = call.receive<QuizSubmissionDto>()

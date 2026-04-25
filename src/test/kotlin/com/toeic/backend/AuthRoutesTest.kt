@@ -124,6 +124,25 @@ class AuthRoutesTest {
     }
 
     @Test
+    fun `register rejects unknown role`() = testApplication {
+        val client = configureTestApp()
+
+        val response = client.post("/api/v1/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf(
+                "fullName" to "Test User",
+                "email" to "test@thee.tn",
+                "password" to "password123",
+                "role" to "admin"
+            ))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = response.body<JsonObject>()
+        assertEquals("INVALID_ROLE", body["errorCode"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `registered user can use token to access protected route`() = testApplication {
         val client = configureTestApp()
 
