@@ -27,8 +27,8 @@ object DatabaseFactory {
         val port = System.getenv("POSTGRES_PORT") ?: "5432"
         val db = System.getenv("POSTGRES_DB") ?: "toeic_backend"
         val url = "jdbc:postgresql://$host:$port/$db"
-        val user = System.getenv("POSTGRES_USER") ?: "postgres"
-        val password = System.getenv("POSTGRES_PASSWORD") ?: "admin"
+        val user = System.getenv("POSTGRES_USER") ?: "thee"
+        val password = System.getenv("POSTGRES_PASSWORD") ?: ""
 
         val hikariConfig = HikariConfig().apply {
             jdbcUrl = url

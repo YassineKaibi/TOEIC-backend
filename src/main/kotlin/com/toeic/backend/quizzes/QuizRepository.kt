@@ -1,11 +1,11 @@
 package com.toeic.backend.quizzes
 
 import com.toeic.backend.db.dbQuery
+import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import java.time.LocalDateTime
 import java.util.UUID
 
 class QuizRepository {
@@ -16,7 +16,7 @@ class QuizRepository {
     ): QuizResponse {
 
         val quizId = UUID.randomUUID().toString()
-        val now = LocalDateTime.now()
+        val now = Clock.System.now()
 
         dbQuery {
             QuizzesTable.insert {
@@ -44,7 +44,7 @@ class QuizRepository {
                 dto.title?.let { title -> it[QuizzesTable.title] = title }
                 dto.description?.let { desc -> it[description] = desc }
                 dto.timeLimitMinutes?.let { time -> it[timeLimitMinutes] = time }
-                it[updatedAt] = LocalDateTime.now()
+                it[updatedAt] = Clock.System.now()
             }
         }
 
@@ -54,7 +54,7 @@ class QuizRepository {
     suspend fun archiveQuiz(quizId: String): Boolean = dbQuery {
         val rowsUpdated = QuizzesTable.update({ QuizzesTable.id eq quizId }) {
             it[archived] = true
-            it[updatedAt] = LocalDateTime.now()
+            it[updatedAt] = Clock.System.now()
         }
         rowsUpdated > 0
     }
@@ -121,7 +121,7 @@ class QuizRepository {
         val rowsDeleted = QuestionsTable.deleteWhere { QuestionsTable.id eq questionId }
         rowsDeleted > 0
     }
-    
+
     suspend fun getQuestion(questionId: String): QuestionResponse? = dbQuery {
         QuestionsTable.selectAll()
             .where { QuestionsTable.id eq questionId }
@@ -135,7 +135,7 @@ class QuizRepository {
             .orderBy(QuestionsTable.order to SortOrder.ASC)
             .map { it.toQuestionResponse() }
     }
-    
+
     suspend fun getQuizOwner(quizId: String): String? = dbQuery {
         QuizzesTable.select(QuizzesTable.teacherId)
             .where { QuizzesTable.id eq quizId }
