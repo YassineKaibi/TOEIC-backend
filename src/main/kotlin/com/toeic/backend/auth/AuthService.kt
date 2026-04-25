@@ -17,21 +17,20 @@ class AuthService(
         if (userRepository.findByEmail(request.email) != null) {
             throw ConflictException("Email already registered", "EMAIL_ALREADY_EXISTS")
         }
-        Role.fromString(request.role) // throws BadRequestException if invalid
+        val role = Role.fromString(request.role) // throws BadRequestException if invalid
         val id = UUID.randomUUID().toString()
         val fullName = request.fullName
         val email = request.email
-        val role = request.role
-        val token = jwtService.generateToken(id, request.role)
+        val token = jwtService.generateToken(id, role.value)
         val passwordHash = BCrypt.withDefaults().hashToString(12, request.password.toCharArray())
-        userRepository.insert(id, fullName, email, passwordHash, role)
+        userRepository.insert(id, fullName, email, passwordHash, role.value)
         return LoginResponse(
             accessToken = token,
             user = UserInfo(
                 id = id,
                 fullName = fullName,
                 email = email,
-                role = role
+                role = role.value
             )
         )
     }

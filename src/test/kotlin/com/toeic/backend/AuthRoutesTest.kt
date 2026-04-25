@@ -124,16 +124,16 @@ class AuthRoutesTest {
     }
 
     @Test
-    fun `register rejects unknown role`() = testApplication {
+    fun `register rejects uppercase role`() = testApplication {
         val client = configureTestApp()
 
         val response = client.post("/api/v1/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(mapOf(
                 "fullName" to "Test User",
-                "email" to "test@thee.tn",
+                "email" to "test2@thee.tn",
                 "password" to "password123",
-                "role" to "admin"
+                "role" to "TEACHER"
             ))
         }
 
