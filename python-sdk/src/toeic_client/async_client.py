@@ -2,11 +2,6 @@ import httpx
 
 from .exceptions import ApiError, AuthError, NotFoundError
 from .models import (
-    ClassStudent,
-    Exam,
-    ExamStatus,
-    GradingResponse,
-    GradingResult,
     LoginResponse,
     Quiz,
     QuizRecommendation,
@@ -15,46 +10,51 @@ from .models import (
     StudentClassItem,
     SubmitQuizResponse,
     TeacherClassItem,
+    ClassStudent,
+    Exam,
+    ExamStatus,
+    GradingResponse,
+    GradingResult,
 )
 
 
-class ToeicClient:
-    """Thin client for the TOEIC Platform API."""
+class AsyncToeicClient:
+    """Async client for the TOEIC Platform API."""
 
     def __init__(self, base_url: str, token: str, timeout: float = 30.0) -> None:
-        self._client = httpx.Client(
+        self._client = httpx.AsyncClient(
             base_url=base_url,
             headers={"Authorization": f"Bearer {token}"},
             timeout=timeout,
         )
 
-    def close(self) -> None:
-        self._client.close()
+    async def aclose(self) -> None:
+        await self._client.aclose()
 
-    def __enter__(self) -> "ToeicClient":
+    async def __aenter__(self) -> "AsyncToeicClient":
         return self
 
-    def __exit__(self, *args: object) -> None:
-        self.close()
+    async def __aexit__(self, *args: object) -> None:
+        await self.aclose()
 
     # ── Auth ──────────────────────────────────────
 
-    def login(self, email: str, password: str) -> LoginResponse:
-        resp = self._client.post(
+    async def login(self, email: str, password: str) -> LoginResponse:
+        resp = await self._client.post(
             "/auth/login",
             json={"email": email, "password": password},
         )
         self._handle_response(resp)
         return LoginResponse.model_validate(resp.json())
 
-    def register(
+    async def register(
         self,
         full_name: str,
         email: str,
         password: str,
         role: str,
     ) -> LoginResponse:
-        resp = self._client.post(
+        resp = await self._client.post(
             "/auth/register",
             json={
                 "fullName": full_name,
@@ -68,52 +68,61 @@ class ToeicClient:
 
     # ── Classes ───────────────────────────────────
 
-    def get_teacher_classes(self) -> list[TeacherClassItem]:
-        resp = self._client.get("/teachers/me/classes")
+    async def get_class_students(self, class_id: str) -> list[ClassStudent]:
+        resp = await self._client.get(f"/classes/{class_id}/students")
+        self._handle_response(resp)
+        if resp.status_code == 204:
+            return []
+        return [ClassStudent.model_validate(s) for s in resp.json()["items"]]
+
+    async def get_teacher_classes(self) -> list[TeacherClassItem]:
+        resp = await self._client.get("/teachers/me/classes")
         self._handle_response(resp)
         if resp.status_code == 204:
             return []
         return [TeacherClassItem.model_validate(c) for c in resp.json()["items"]]
 
-    def get_student_classes(self) -> list[StudentClassItem]:
-        resp = self._client.get("/students/me/classes")
+    async def get_student_classes(self) -> list[StudentClassItem]:
+        resp = await self._client.get("/students/me/classes")
         self._handle_response(resp)
         if resp.status_code == 204:
             return []
         return [StudentClassItem.model_validate(c) for c in resp.json()["items"]]
 
-    def leave_class(self, class_id: str) -> None:
-        resp = self._client.delete(f"/students/me/classes/{class_id}")
+    async def leave_class(self, class_id: str) -> None:
+        resp = await self._client.delete(f"/students/me/classes/{class_id}")
         self._handle_response(resp)
 
-    def remove_student(self, class_id: str, student_id: str) -> None:
-        resp = self._client.delete(f"/classes/{class_id}/students/{student_id}")
+    async def remove_student(self, class_id: str, student_id: str) -> None:
+        resp = await self._client.delete(
+            f"/classes/{class_id}/students/{student_id}"
+        )
         self._handle_response(resp)
 
     # ── Quizzes ───────────────────────────────────
 
-    def get_teacher_quizzes(self) -> list[Quiz]:
-        resp = self._client.get("/teachers/me/quizzes")
+    async def get_teacher_quizzes(self) -> list[Quiz]:
+        resp = await self._client.get("/teachers/me/quizzes")
         self._handle_response(resp)
         if resp.status_code == 204:
             return []
         return [Quiz.model_validate(q) for q in resp.json()["items"]]
 
-    def get_quiz(self, quiz_id: str) -> Quiz:
-        resp = self._client.get(f"/teachers/me/quizzes/{quiz_id}")
+    async def get_quiz(self, quiz_id: str) -> Quiz:
+        resp = await self._client.get(f"/teachers/me/quizzes/{quiz_id}")
         self._handle_response(resp)
         return Quiz.model_validate(resp.json())
 
     # ── Submissions ───────────────────────────────
 
-    def submit_quiz(
+    async def submit_quiz(
         self,
         quiz_id: str,
         student_id: str,
         duration_seconds: int,
         answers: list[StudentAnswer],
     ) -> SubmitQuizResponse:
-        resp = self._client.post(
+        resp = await self._client.post(
             f"/quizzes/{quiz_id}/submissions",
             json={
                 "studentId": student_id,
@@ -132,41 +141,38 @@ class ToeicClient:
 
     # ── Recommendations ───────────────────────────
 
-    def get_recommendations(self, student_id: str) -> RecommendationsResponse:
-        resp = self._client.get(f"/students/{student_id}/recommendations")
+    async def get_recommendations(
+        self, student_id: str
+    ) -> RecommendationsResponse:
+        resp = await self._client.get(
+            f"/students/{student_id}/recommendations"
+        )
         self._handle_response(resp)
         return RecommendationsResponse.model_validate(resp.json())
 
-    # ── Sprint 1 ─────────────────────────────────
+    # ── Sprint 2 grader stubs (not yet implemented in backend) ────────────
 
-    def get_class_students(self, class_id: str) -> list[ClassStudent]:
-        resp = self._client.get(f"/classes/{class_id}/students")
-        self._handle_response(resp)
-        if resp.status_code == 204:
-            return []
-        return [ClassStudent.model_validate(s) for s in resp.json()["items"]]
-
-    # ── Sprint 2 (stubs until backend is ready) ──
-
-    def get_exam(self, exam_id: str) -> Exam:
+    async def get_exam(self, exam_id: str) -> Exam:
         raise NotImplementedError("Awaiting Sprint 2 backend endpoints")
 
-    def get_exam_image(self, exam_id: str) -> bytes:
+    async def get_exam_image(self, exam_id: str) -> bytes:
         raise NotImplementedError("Awaiting Sprint 2 backend endpoints")
 
-    def submit_grading(self, exam_id: str, results: GradingResult) -> GradingResponse:
+    async def submit_grading(
+        self, exam_id: str, results: GradingResult
+    ) -> GradingResponse:
         raise NotImplementedError("Awaiting Sprint 2 backend endpoints")
 
-    def update_exam_status(self, exam_id: str, status: ExamStatus) -> None:
+    async def update_exam_status(
+        self, exam_id: str, status: ExamStatus
+    ) -> None:
         raise NotImplementedError("Awaiting Sprint 2 backend endpoints")
 
-    # ── Internal ─────────────────────────────────
+    # ── Internal ──────────────────────────────────
 
     def _handle_response(self, response: httpx.Response) -> None:
-        """Raise typed exceptions for non-2xx responses."""
         if response.is_success:
             return
-
         try:
             body = response.json()
             message = body.get("message", response.reason_phrase)
@@ -174,7 +180,6 @@ class ToeicClient:
         except Exception:
             message = response.reason_phrase or "Unknown error"
             error_code = "UNKNOWN"
-
         status = response.status_code
         if status in (401, 403):
             raise AuthError(status, message, error_code)

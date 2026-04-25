@@ -1,3 +1,4 @@
+from .async_client import AsyncToeicClient
 from .client import ToeicClient
 from .exceptions import ApiError, AuthError, NotFoundError
 from .models import (
@@ -6,10 +7,22 @@ from .models import (
     ExamStatus,
     GradingResponse,
     GradingResult,
+    LoginResponse,
+    Question,
+    Quiz,
+    QuizRecommendation,
     QuestionResult,
+    RecommendationsResponse,
+    StudentAnswer,
+    StudentClassItem,
+    SubmitQuizResponse,
+    TeacherClassItem,
+    TeacherInfo,
+    UserInfo,
 )
 
 __all__ = [
+    "AsyncToeicClient",
     "ToeicClient",
     "ApiError",
     "AuthError",
@@ -19,5 +32,16 @@ __all__ = [
     "ExamStatus",
     "GradingResponse",
     "GradingResult",
+    "LoginResponse",
+    "Question",
+    "Quiz",
+    "QuizRecommendation",
     "QuestionResult",
+    "RecommendationsResponse",
+    "StudentAnswer",
+    "StudentClassItem",
+    "SubmitQuizResponse",
+    "TeacherClassItem",
+    "TeacherInfo",
+    "UserInfo",
 ]
