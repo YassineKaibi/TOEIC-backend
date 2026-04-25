@@ -48,27 +48,24 @@ object DatabaseFactory {
 
         database = Database.connect(HikariDataSource(hikariConfig))
 
+        val devPasswordHash = BCrypt.withDefaults().hashToString(12, "password123".toCharArray())
         transaction(database) {
             SchemaUtils.create(UsersTable, ClassesTable, EnrollmentsTable, QuizzesTable, QuestionsTable, SubmissionsTable, QuizClassesTable)
-            seedDevData()
+            seedDevData(devPasswordHash)
         }
     }
 
-    private fun seedDevData() {
+    private fun seedDevData(passwordHash: String) {
         val hasUsers = UsersTable.selectAll().count() > 0
         if (hasUsers) return
 
         logger.info("Seeding dev data...")
 
-        val hash = { pwd: String ->
-            BCrypt.withDefaults().hashToString(12, pwd.toCharArray())
-        }
-
         UsersTable.insert {
             it[id] = "teacher-01"
             it[fullName] = "Mondher Ben Ali"
             it[email] = "mondher@thee.tn"
-            it[passwordHash] = hash("password123")
+            it[UsersTable.passwordHash] = passwordHash
             it[role] = "teacher"
         }
 
@@ -76,7 +73,7 @@ object DatabaseFactory {
             it[id] = "student-01"
             it[fullName] = "Yassine Kaibi"
             it[email] = "yassine@thee.tn"
-            it[passwordHash] = hash("password123")
+            it[UsersTable.passwordHash] = passwordHash
             it[role] = "student"
         }
 
@@ -84,7 +81,7 @@ object DatabaseFactory {
             it[id] = "student-02"
             it[fullName] = "Amira Trabelsi"
             it[email] = "amira@thee.tn"
-            it[passwordHash] = hash("password123")
+            it[UsersTable.passwordHash] = passwordHash
             it[role] = "student"
         }
 
