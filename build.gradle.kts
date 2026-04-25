@@ -47,6 +47,11 @@ dependencies {
     // Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
 
+    // Ktor Client
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
+
     // Test
     testImplementation("io.ktor:ktor-server-test-host:$ktor_version")
     testImplementation("io.ktor:ktor-client-content-negotiation:$ktor_version")

@@ -142,6 +142,20 @@ class QuizRepository {
             .singleOrNull()?.get(QuizzesTable.teacherId)
     }
 
+    suspend fun getQuizzesByIds(ids: List<String>): List<QuizResponse> = dbQuery {
+        if (ids.isEmpty()) return@dbQuery emptyList()
+        QuizzesTable.selectAll()
+            .where { (QuizzesTable.id inList ids) and (QuizzesTable.archived eq false) }
+            .map { it.toQuizResponse() }
+            .sortedBy { quiz -> ids.indexOf(quiz.id) }
+    }
+
+    suspend fun getClassIdsForQuiz(quizId: String): List<String> = dbQuery {
+        QuizClassesTable.select(QuizClassesTable.classId)
+            .where { QuizClassesTable.quizId eq quizId }
+            .map { it[QuizClassesTable.classId] }
+    }
+
     private fun ResultRow.toQuizResponse(questions: List<QuestionResponse>? = null) = QuizResponse(
         id = this[QuizzesTable.id],
         title = this[QuizzesTable.title],

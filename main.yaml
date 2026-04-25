@@ -17,6 +17,10 @@ tags:
     description: Teacher-specific endpoints
   - name: Students
     description: Student-specific endpoints
+  - name: Quizzes
+    description: Quiz submissions
+  - name: Recommendations
+    description: AI-powered quiz recommendations
 
 paths:
   /auth/login:
@@ -333,6 +337,125 @@ paths:
                 message: Class not found
                 errorCode: CLASS_NOT_FOUND
 
+  /quizzes/{quizId}/submissions:
+    post:
+      tags: [Quizzes]
+      summary: Submit a quiz attempt
+      operationId: submitQuiz
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/quizId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizSubmissionRequest"
+      responses:
+        "201":
+          description: Submission accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSubmissionResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidInput:
+                  summary: Empty answers / negative duration / blank fields
+                  value:
+                    message: answers must not be empty
+                    errorCode: INVALID_INPUT
+                duplicateAnswer:
+                  summary: Same questionId submitted twice
+                  value:
+                    message: duplicate questionId in answers
+                    errorCode: DUPLICATE_ANSWER
+                questionNotInQuiz:
+                  summary: Answer references a question not in this quiz
+                  value:
+                    message: question q-99 not in quiz
+                    errorCode: QUESTION_NOT_IN_QUIZ
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                studentRoleRequired:
+                  summary: Caller is not a student
+                  value:
+                    message: "Role 'student' required"
+                    errorCode: STUDENT_ROLE_REQUIRED
+                studentMismatch:
+                  summary: studentId in body differs from JWT
+                  value:
+                    message: Cannot submit for another student
+                    errorCode: STUDENT_MISMATCH
+                notEnrolled:
+                  summary: Student not enrolled in any class assigned to this quiz
+                  value:
+                    message: Student is not enrolled in any class assigned to this quiz
+                    errorCode: NOT_ENROLLED_IN_QUIZ_CLASS
+        "404":
+          description: Quiz not found or archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Quiz not found
+                errorCode: QUIZ_NOT_FOUND
+
+  /students/{studentId}/recommendations:
+    get:
+      tags: [Recommendations]
+      summary: Get AI-recommended quizzes for a student
+      operationId: getRecommendations
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/studentId"
+      responses:
+        "200":
+          description: Recommended quizzes (empty array when AI returns none)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationsResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                studentRoleRequired:
+                  summary: Caller is not a student
+                  value:
+                    message: "Role 'student' required"
+                    errorCode: STUDENT_ROLE_REQUIRED
+                studentMismatch:
+                  summary: Path studentId differs from JWT
+                  value:
+                    message: Cannot read another student's recommendations
+                    errorCode: STUDENT_MISMATCH
+        "502":
+          description: AI service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: Upstream service unavailable
+                errorCode: AI_UNAVAILABLE
+
 components:
   securitySchemes:
     bearerAuth:
@@ -349,6 +472,12 @@ components:
         type: string
     studentId:
       name: studentId
+      in: path
+      required: true
+      schema:
+        type: string
+    quizId:
+      name: quizId
       in: path
       required: true
       schema:
@@ -484,3 +613,55 @@ components:
           type: string
         joinedAt:
           type: string
+
+    QuizSubmissionRequest:
+      type: object
+      required: [studentId, durationSeconds, answers]
+      properties:
+        studentId:
+          type: string
+        durationSeconds:
+          type: integer
+          minimum: 0
+        answers:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/StudentAnswer"
+
+    StudentAnswer:
+      type: object
+      required: [questionId, selectedOption]
+      properties:
+        questionId:
+          type: string
+        selectedOption:
+          type: string
+
+    QuizSubmissionResponse:
+      type: object
+      properties:
+        submissionId:
+          type: string
+        status:
+          type: string
+          enum: [received]
+
+    RecommendationsResponse:
+      type: object
+      properties:
+        quizzes:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizRecommendation"
+
+    QuizRecommendation:
+      type: object
+      properties:
+        quizId:
+          type: string
+        title:
+          type: string
+        difficulty:
+          type: string
+          nullable: true
