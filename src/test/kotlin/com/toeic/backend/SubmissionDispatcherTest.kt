@@ -94,4 +94,34 @@ class SubmissionDispatcherTest {
         // Should run in parallel: ~100ms, not sequentially: ~200ms
         assertTrue(elapsed < 250, "Took ${elapsed}ms, expected parallel execution < 250ms")
     }
+
+    @Test
+    fun dispatcher_cleans_up_channel_after_idle_timeout() = runBlocking {
+        val aiClient = FakeAiClient()
+        val submissionRepository = object : SubmissionRepository() {
+            override suspend fun updateAiStatus(submissionId: String, status: String) = Unit
+        }
+        // Use a very short idle timeout for testing (100ms)
+        val dispatcher = SubmissionDispatcher(submissionRepository, aiClient, idleTimeoutMs = 100L)
+
+        val payload = AiQuizResultRequest(
+            submissionId = "sub-cleanup",
+            studentId = "student-cleanup",
+            quizId = "quiz-01",
+            score = 1.0,
+            maxScore = 2.0,
+            correctCount = 1,
+            totalCount = 2,
+            durationSeconds = 60,
+            answers = emptyList(),
+            submittedAt = Clock.System.now().toString()
+        )
+        dispatcher.dispatch(payload)
+
+        // Wait for processing + idle timeout + buffer
+        delay(500)
+
+        // The channel map should be empty after idle timeout
+        assertEquals(0, dispatcher.channelCount())
+    }
 }
