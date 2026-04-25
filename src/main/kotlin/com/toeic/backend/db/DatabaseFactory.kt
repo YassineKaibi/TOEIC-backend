@@ -5,10 +5,15 @@ import com.toeic.backend.classes.ClassesTable
 import com.toeic.backend.enrollments.EnrollmentsTable
 import com.toeic.backend.quizzes.QuestionsTable
 import com.toeic.backend.quizzes.QuizzesTable
+import com.toeic.backend.quizzes.QuizClassesTable
+import com.toeic.backend.submissions.SubmissionsTable
 import com.toeic.backend.users.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.Clock
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
@@ -44,7 +49,7 @@ object DatabaseFactory {
         database = Database.connect(HikariDataSource(hikariConfig))
 
         transaction(database) {
-            SchemaUtils.create(UsersTable, ClassesTable, EnrollmentsTable, QuizzesTable, QuestionsTable)
+            SchemaUtils.create(UsersTable, ClassesTable, EnrollmentsTable, QuizzesTable, QuestionsTable, SubmissionsTable, QuizClassesTable)
             seedDevData()
         }
     }
@@ -81,6 +86,69 @@ object DatabaseFactory {
             it[email] = "amira@thee.tn"
             it[passwordHash] = hash("password123")
             it[role] = "student"
+        }
+
+        val now = Clock.System.now()
+
+        // Create a demo class
+        ClassesTable.insert {
+            it[id] = "class-01"
+            it[name] = "Sprint 2 Demo"
+            it[teacherId] = "teacher-01"
+            it[joinCode] = "DEMO01"
+            it[createdAt] = now
+        }
+
+        // Enroll students in the class
+        EnrollmentsTable.insert {
+            it[classId] = "class-01"
+            it[studentId] = "student-01"
+            it[joinedAt] = now
+        }
+
+        EnrollmentsTable.insert {
+            it[classId] = "class-01"
+            it[studentId] = "student-02"
+            it[joinedAt] = now
+        }
+
+        // Create a demo quiz
+        QuizzesTable.insert {
+            it[id] = "quiz-01"
+            it[title] = "Demo Listening"
+            it[description] = null
+            it[timeLimitMinutes] = 0
+            it[teacherId] = "teacher-01"
+            it[archived] = false
+            it[createdAt] = now
+            it[updatedAt] = now
+        }
+
+        // Create questions for the quiz
+        QuestionsTable.insert {
+            it[id] = "q-01"
+            it[quizId] = "quiz-01"
+            it[prompt] = "Question 1"
+            it[order] = 1
+            it[points] = 1.0
+            it[options] = Json.encodeToString(listOf("A", "B", "C", "D"))
+            it[correctAnswer] = "A"
+        }
+
+        QuestionsTable.insert {
+            it[id] = "q-02"
+            it[quizId] = "quiz-01"
+            it[prompt] = "Question 2"
+            it[order] = 2
+            it[points] = 1.0
+            it[options] = Json.encodeToString(listOf("A", "B", "C", "D"))
+            it[correctAnswer] = "B"
+        }
+
+        // Link quiz to class
+        QuizClassesTable.insert {
+            it[quizId] = "quiz-01"
+            it[classId] = "class-01"
         }
 
         logger.info("Seeded 3 dev users (password: password123)")

@@ -32,3 +32,8 @@ class BadRequestException(
     message: String = "Bad request",
     errorCode: String = "WRONG_CODE"
 ) : AppException(HttpStatusCode.BadRequest, message, errorCode)
+
+class BadGatewayException(
+    message: String = "Upstream service unavailable",
+    errorCode: String = "AI_UNAVAILABLE"
+) : AppException(HttpStatusCode.BadGateway, message, errorCode)

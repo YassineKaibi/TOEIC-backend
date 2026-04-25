@@ -1,5 +1,7 @@
 package com.toeic.backend
 
+import com.toeic.backend.ai.AiClient
+import com.toeic.backend.ai.KtorAiClient
 import com.toeic.backend.auth.AuthService
 import com.toeic.backend.auth.JwtService
 import com.toeic.backend.classes.ClassRepository
@@ -9,6 +11,10 @@ import com.toeic.backend.enrollments.EnrollmentRepository
 import com.toeic.backend.plugins.*
 import com.toeic.backend.quizzes.QuizRepository
 import com.toeic.backend.quizzes.QuizService
+import com.toeic.backend.recommendations.RecommendationService
+import com.toeic.backend.submissions.SubmissionDispatcher
+import com.toeic.backend.submissions.SubmissionRepository
+import com.toeic.backend.submissions.SubmissionService
 import com.toeic.backend.users.UserRepository
 import io.ktor.server.application.*
 import io.ktor.server.netty.*
@@ -36,5 +42,15 @@ fun Application.module() {
     val classService = ClassService(classRepository, enrollmentRepository)
     val quizService = QuizService(quizRepository)
 
-    configureRouting(authService, classService, quizService)
+    val aiClient: AiClient = KtorAiClient()
+    val submissionRepository = SubmissionRepository()
+    val submissionDispatcher = SubmissionDispatcher(submissionRepository, aiClient)
+    val submissionService = SubmissionService(
+        quizRepository, submissionRepository, enrollmentRepository, submissionDispatcher
+    )
+    val recommendationService = RecommendationService(aiClient, quizRepository)
+
+    configureRouting(authService, classService, quizService, submissionService, recommendationService)
+
+    environment.monitor.subscribe(ApplicationStopping) { aiClient.close() }
 }
