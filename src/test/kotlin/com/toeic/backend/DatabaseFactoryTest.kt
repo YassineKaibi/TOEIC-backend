@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 class DatabaseFactoryTest {
 
     @Test
-    fun seed_data_is_not_duplicated_on_second_call() = runBlocking {
+    fun seed_inserts_exactly_three_users() = runBlocking {
         initTestDatabase(seedQuizData = false)
         val count = dbQuery { UsersTable.selectAll().count() }
         assertEquals(3, count) // teacher-01, student-01, student-02
