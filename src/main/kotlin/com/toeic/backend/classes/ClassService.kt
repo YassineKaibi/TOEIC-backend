@@ -32,9 +32,13 @@ class ClassService(
         enrollmentRepository.insert(clazz.id, studentId)
     }
 
-    suspend fun getTeacherClasses(teacherId: String): List<TeacherClassItem> {
-        val classes = classRepository.findByTeacherId(teacherId)
-        return classes.map { clazz ->
+    suspend fun getTeacherClasses(
+        teacherId: String,
+        page: Int = 1,
+        pageSize: Int = 20
+    ): Pair<List<TeacherClassItem>, Int> {
+        val (classes, total) = classRepository.findByTeacherId(teacherId, page, pageSize)
+        val items = classes.map { clazz ->
             TeacherClassItem(
                 id = clazz.id,
                 name = clazz.name,
@@ -42,15 +46,25 @@ class ClassService(
                 joinCode = clazz.joinCode
             )
         }
+        return Pair(items, total)
     }
 
-    suspend fun getStudentClasses(studentId: String): List<StudentClassItem> {
-        return enrollmentRepository.findClassesByStudentId(studentId)
+    suspend fun getStudentClasses(
+        studentId: String,
+        page: Int = 1,
+        pageSize: Int = 20
+    ): Pair<List<StudentClassItem>, Int> {
+        return enrollmentRepository.findClassesByStudentId(studentId, page, pageSize)
     }
 
-    suspend fun getClassStudents(teacherId: String, classId: String): List<ClassStudentItem> {
+    suspend fun getClassStudents(
+        teacherId: String,
+        classId: String,
+        page: Int = 1,
+        pageSize: Int = 20
+    ): Pair<List<ClassStudentItem>, Int> {
         verifyClassOwnership(teacherId, classId)
-        return enrollmentRepository.findStudentsByClassId(classId)
+        return enrollmentRepository.findStudentsByClassId(classId, page, pageSize)
     }
 
     suspend fun removeStudent(teacherId: String, classId: String, studentId: String) {

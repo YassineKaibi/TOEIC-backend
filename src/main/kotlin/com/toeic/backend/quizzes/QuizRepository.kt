@@ -5,6 +5,7 @@ import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.util.UUID
 
@@ -59,10 +60,18 @@ class QuizRepository {
         rowsUpdated > 0
     }
 
-    suspend fun getTeacherQuizzes(teacherId: String): List<QuizResponse> = dbQuery {
-        QuizzesTable.selectAll()
-            .where { (QuizzesTable.teacherId eq teacherId) and (QuizzesTable.archived eq false) }
+    suspend fun getTeacherQuizzes(
+        teacherId: String,
+        page: Int = 1,
+        pageSize: Int = 20
+    ): Pair<List<QuizResponse>, Int> = dbQuery {
+        val where = Op.build { (QuizzesTable.teacherId eq teacherId) and (QuizzesTable.archived eq false) }
+        val total = QuizzesTable.selectAll().where(where).count().toInt()
+        val items = QuizzesTable.selectAll()
+            .where(where)
+            .limit(pageSize).offset(((page - 1) * pageSize).toLong())
             .map { it.toQuizResponse() }
+        Pair(items, total)
     }
 
     suspend fun getQuiz(quizId: String): QuizResponse? {

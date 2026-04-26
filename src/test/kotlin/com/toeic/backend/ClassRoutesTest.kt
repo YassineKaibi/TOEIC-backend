@@ -248,11 +248,69 @@ class ClassRoutesTest {
         }
         assertEquals(HttpStatusCode.NoContent, leaveResponse.status)
 
-        // Student's class list should be empty
+        // Student's class list should be empty (paginated endpoint returns 200 with total: 0)
         val classesResponse = client.get("/api/v1/students/me/classes") {
             withAuth(studentToken)
         }
-        assertEquals(HttpStatusCode.NoContent, classesResponse.status)
+        assertEquals(HttpStatusCode.OK, classesResponse.status)
+        assertEquals(0, classesResponse.body<JsonObject>()["total"]?.jsonPrimitive?.int)
+    }
+
+    @Test
+    fun `teacher classes list is paginated`() = testApplication {
+        val client = configureTestApp()
+        val token = client.login("mondher@thee.tn")
+
+        // Create 3 classes
+        repeat(3) { i ->
+            client.post("/api/v1/classes") {
+                contentType(ContentType.Application.Json)
+                withAuth(token)
+                setBody(mapOf("name" to "Class $i"))
+            }
+        }
+
+        val response = client.get("/api/v1/teachers/me/classes?page=1&pageSize=2") {
+            withAuth(token)
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<JsonObject>()
+        assertEquals(2, body["items"]?.jsonArray?.size)
+        assertEquals(3, body["total"]?.jsonPrimitive?.int)
+        assertEquals(1, body["page"]?.jsonPrimitive?.int)
+        assertEquals(2, body["pageSize"]?.jsonPrimitive?.int)
+    }
+
+    @Test
+    fun `student classes list is paginated`() = testApplication {
+        val client = configureTestApp()
+        val teacherToken = client.login("mondher@thee.tn")
+        val studentToken = client.login("yassine@thee.tn")
+
+        // Create 3 classes and join all
+        repeat(3) { i ->
+            val createResp = client.post("/api/v1/classes") {
+                contentType(ContentType.Application.Json)
+                withAuth(teacherToken)
+                setBody(mapOf("name" to "Student Class $i"))
+            }
+            val joinCode = createResp.body<JsonObject>()["joinCode"]!!.jsonPrimitive.content
+            client.post("/api/v1/classes/join") {
+                contentType(ContentType.Application.Json)
+                withAuth(studentToken)
+                setBody(mapOf("code" to joinCode))
+            }
+        }
+
+        val response = client.get("/api/v1/students/me/classes?page=1&pageSize=2") {
+            withAuth(studentToken)
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<JsonObject>()
+        assertEquals(2, body["items"]?.jsonArray?.size)
+        assertEquals(3, body["total"]?.jsonPrimitive?.int)
     }
 
     @Test

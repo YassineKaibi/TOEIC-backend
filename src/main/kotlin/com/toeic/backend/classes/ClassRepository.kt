@@ -2,6 +2,7 @@ package com.toeic.backend.classes
 
 import com.toeic.backend.db.dbQuery
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
@@ -63,9 +64,16 @@ class ClassRepository {
             .singleOrNull()
     }
 
-    suspend fun findByTeacherId(teacherId: String): List<ClassResponse> = dbQuery {
-        ClassesTable.selectAll()
-            .where { ClassesTable.teacherId eq teacherId }
+    suspend fun findByTeacherId(
+        teacherId: String,
+        page: Int = 1,
+        pageSize: Int = 20
+    ): Pair<List<ClassResponse>, Int> = dbQuery {
+        val where = Op.build { ClassesTable.teacherId eq teacherId }
+        val total = ClassesTable.selectAll().where(where).count().toInt()
+        val items = ClassesTable.selectAll()
+            .where(where)
+            .limit(pageSize).offset(((page - 1) * pageSize).toLong())
             .map {
                 ClassResponse(
                     id = it[ClassesTable.id],
@@ -76,5 +84,6 @@ class ClassRepository {
                     createdAt = it[ClassesTable.createdAt].toString()
                 )
             }
+        Pair(items, total)
     }
 }

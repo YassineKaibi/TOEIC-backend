@@ -1,8 +1,9 @@
 package com.toeic.backend.quizzes
 
 import com.toeic.backend.common.BadRequestException
+import com.toeic.backend.common.Role
 import com.toeic.backend.common.requireRole
-import com.toeic.backend.common.respondList
+import com.toeic.backend.common.respondPaged
 import com.toeic.backend.common.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -13,28 +14,30 @@ fun Route.quizRoutes(quizService: QuizService) {
     route("/teachers/me/quizzes") {
 
         post {
-            call.requireRole("teacher")
+            call.requireRole(Role.TEACHER)
             val dto = call.receive<CreateQuizDto>()
             val result = quizService.createQuiz(call.userId(), dto)
             call.respond(HttpStatusCode.Created, result)
         }
 
         get {
-            call.requireRole("teacher")
-            val quizzes = quizService.getTeacherQuizzes(call.userId())
-            call.respondList(quizzes)
+            call.requireRole(Role.TEACHER)
+            val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
+            val pageSize = (call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+            val (quizzes, total) = quizService.getTeacherQuizzes(call.userId(), page, pageSize)
+            call.respondPaged(quizzes, total, page, pageSize)
         }
 
         route("/{quizId}") {
             get {
-                call.requireRole("teacher")
+                call.requireRole(Role.TEACHER)
                 val quizId = call.requireParam("quizId")
                 val quiz = quizService.getQuiz(quizId, call.userId())
                 call.respond(HttpStatusCode.OK, quiz)
             }
 
             patch {
-                call.requireRole("teacher")
+                call.requireRole(Role.TEACHER)
                 val quizId = call.requireParam("quizId")
                 val dto = call.receive<UpdateQuizDto>()
                 val result = quizService.updateQuiz(quizId, call.userId(), dto)
@@ -42,7 +45,7 @@ fun Route.quizRoutes(quizService: QuizService) {
             }
 
             delete {
-                call.requireRole("teacher")
+                call.requireRole(Role.TEACHER)
                 val quizId = call.requireParam("quizId")
                 quizService.archiveQuiz(quizId, call.userId())
                 call.respond(HttpStatusCode.NoContent)
@@ -50,7 +53,7 @@ fun Route.quizRoutes(quizService: QuizService) {
 
             route("/questions") {
                 post {
-                    call.requireRole("teacher")
+                    call.requireRole(Role.TEACHER)
                     val quizId = call.requireParam("quizId")
                     val dto = call.receive<CreateQuestionDto>()
                     val result = quizService.createQuestion(quizId, call.userId(), dto)
@@ -59,7 +62,7 @@ fun Route.quizRoutes(quizService: QuizService) {
 
                 route("/{questionId}") {
                     patch {
-                        call.requireRole("teacher")
+                        call.requireRole(Role.TEACHER)
                         val quizId = call.requireParam("quizId")
                         val questionId = call.requireParam("questionId")
                         val dto = call.receive<UpdateQuestionDto>()
@@ -68,7 +71,7 @@ fun Route.quizRoutes(quizService: QuizService) {
                     }
 
                     delete {
-                        call.requireRole("teacher")
+                        call.requireRole(Role.TEACHER)
                         val quizId = call.requireParam("quizId")
                         val questionId = call.requireParam("questionId")
                         quizService.deleteQuestion(quizId, questionId, call.userId())

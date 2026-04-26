@@ -92,21 +92,20 @@ fun initTestDatabase(seedQuizData: Boolean = false) {
     val dbName = "test_${dbCounter.incrementAndGet()}"
     val db = Database.connect("jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;MODE=PostgreSQL", driver = "org.h2.Driver")
     com.toeic.backend.db.DatabaseFactory.database = db
+    val passwordHash = BCrypt.withDefaults().hashToString(12, TEST_PASSWORD.toCharArray())
     transaction(db) {
         SchemaUtils.create(UsersTable, ClassesTable, EnrollmentsTable, QuizzesTable, QuestionsTable, SubmissionsTable, QuizClassesTable)
-        seedTestUsers()
+        seedTestUsers(passwordHash)
         if (seedQuizData) seedTestQuizData()
     }
 }
 
-private fun seedTestUsers() {
-    val hash = { pwd: String -> BCrypt.withDefaults().hashToString(12, pwd.toCharArray()) }
-
+private fun seedTestUsers(passwordHash: String) {
     UsersTable.insert {
         it[id] = TEACHER_ID
         it[fullName] = "Mondher Ben Ali"
         it[email] = "mondher@thee.tn"
-        it[passwordHash] = hash(TEST_PASSWORD)
+        it[UsersTable.passwordHash] = passwordHash
         it[role] = "teacher"
     }
 
@@ -114,7 +113,7 @@ private fun seedTestUsers() {
         it[id] = STUDENT_ID
         it[fullName] = "Yassine Kaibi"
         it[email] = "yassine@thee.tn"
-        it[passwordHash] = hash(TEST_PASSWORD)
+        it[UsersTable.passwordHash] = passwordHash
         it[role] = "student"
     }
 
@@ -122,7 +121,7 @@ private fun seedTestUsers() {
         it[id] = STUDENT2_ID
         it[fullName] = "Amira Trabelsi"
         it[email] = "amira@thee.tn"
-        it[passwordHash] = hash(TEST_PASSWORD)
+        it[UsersTable.passwordHash] = passwordHash
         it[role] = "student"
     }
 }

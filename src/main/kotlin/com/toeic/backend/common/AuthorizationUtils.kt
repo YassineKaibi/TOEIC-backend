@@ -12,11 +12,16 @@ fun RoutingCall.userRole(): String =
     principal<JWTPrincipal>()?.payload?.getClaim("role")?.asString()
         ?: throw UnauthorizedException("Missing role in token")
 
-fun RoutingCall.requireRole(role: String) {
-    if (userRole() != role) {
+fun RoutingCall.requireRole(role: Role) {
+    val actual = try {
+        Role.fromString(userRole())
+    } catch (e: BadRequestException) {
+        throw ForbiddenException("Invalid role in token", "INVALID_ROLE")
+    }
+    if (actual != role) {
         throw ForbiddenException(
-            message = "Role '$role' required",
-            errorCode = "${role.uppercase()}_ROLE_REQUIRED"
+            message = "Role '${role.value}' required",
+            errorCode = "${role.name}_ROLE_REQUIRED"
         )
     }
 }

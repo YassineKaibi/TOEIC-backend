@@ -3,6 +3,7 @@ package com.toeic.backend.auth
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.toeic.backend.common.BadRequestException
 import com.toeic.backend.common.ConflictException
+import com.toeic.backend.common.Role
 import com.toeic.backend.common.UnauthorizedException
 import com.toeic.backend.users.UserRepository
 import java.util.*
@@ -16,23 +17,20 @@ class AuthService(
         if (userRepository.findByEmail(request.email) != null) {
             throw ConflictException("Email already registered", "EMAIL_ALREADY_EXISTS")
         }
-        if (request.role !in listOf("student", "teacher")) {
-            throw BadRequestException("Invalid role", "INVALID_ROLE")
-        }
+        val role = Role.fromString(request.role) // throws BadRequestException if invalid
         val id = UUID.randomUUID().toString()
         val fullName = request.fullName
         val email = request.email
-        val role = request.role
-        val token = jwtService.generateToken(id, request.role)
+        val token = jwtService.generateToken(id, role.value)
         val passwordHash = BCrypt.withDefaults().hashToString(12, request.password.toCharArray())
-        userRepository.insert(id, fullName, email, passwordHash, role)
+        userRepository.insert(id, fullName, email, passwordHash, role.value)
         return LoginResponse(
             accessToken = token,
             user = UserInfo(
                 id = id,
                 fullName = fullName,
                 email = email,
-                role = role
+                role = role.value
             )
         )
     }

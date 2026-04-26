@@ -6,6 +6,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.int
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -124,6 +125,25 @@ class AuthRoutesTest {
     }
 
     @Test
+    fun `register rejects uppercase role`() = testApplication {
+        val client = configureTestApp()
+
+        val response = client.post("/api/v1/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf(
+                "fullName" to "Test User",
+                "email" to "test2@thee.tn",
+                "password" to "password123",
+                "role" to "TEACHER"
+            ))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = response.body<JsonObject>()
+        assertEquals("INVALID_ROLE", body["errorCode"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `registered user can use token to access protected route`() = testApplication {
         val client = configureTestApp()
 
@@ -142,6 +162,8 @@ class AuthRoutesTest {
             withAuth(token)
         }
 
-        assertEquals(HttpStatusCode.NoContent, classesResponse.status)
+        // Paginated endpoint always returns 200 even for empty results
+        assertEquals(HttpStatusCode.OK, classesResponse.status)
+        assertEquals(0, classesResponse.body<JsonObject>()["total"]?.jsonPrimitive?.int)
     }
 }

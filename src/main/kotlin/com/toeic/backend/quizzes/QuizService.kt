@@ -11,8 +11,12 @@ class QuizService(private val quizRepository: QuizRepository) {
         return quizRepository.createQuiz(teacherId, dto)
     }
 
-    suspend fun getTeacherQuizzes(teacherId: String): List<QuizResponse> {
-        return quizRepository.getTeacherQuizzes(teacherId)
+    suspend fun getTeacherQuizzes(
+        teacherId: String,
+        page: Int = 1,
+        pageSize: Int = 20
+    ): Pair<List<QuizResponse>, Int> {
+        return quizRepository.getTeacherQuizzes(teacherId, page, pageSize)
     }
 
     suspend fun getQuiz(quizId: String, teacherId: String): QuizResponse {
