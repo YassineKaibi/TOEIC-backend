@@ -1,12 +1,56 @@
 services:
   postgres:
-    ports: !reset []
+    image: postgres:17-alpine
+    container_name: toeic-postgres
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-toeic_backend}
+      POSTGRES_USER: ${POSTGRES_USER:-thee}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-thee} -d ${POSTGRES_DB:-toeic_backend}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   app:
+    image: ghcr.io/yassinekaibi/toeic-backend:latest
+    container_name: toeic-app
     restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-toeic_backend}
+      POSTGRES_USER: ${POSTGRES_USER:-thee}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-toeic-backend}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-toeic-backend}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-qO-", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   nginx:
+    image: nginx:alpine
+    container_name: toeic-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
-    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  pgdata:
