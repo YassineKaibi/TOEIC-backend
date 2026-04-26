@@ -3,7 +3,7 @@ package com.toeic.backend.quizzes
 import com.toeic.backend.common.BadRequestException
 import com.toeic.backend.common.Role
 import com.toeic.backend.common.requireRole
-import com.toeic.backend.common.respondList
+import com.toeic.backend.common.respondPaged
 import com.toeic.backend.common.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -22,8 +22,10 @@ fun Route.quizRoutes(quizService: QuizService) {
 
         get {
             call.requireRole(Role.TEACHER)
-            val quizzes = quizService.getTeacherQuizzes(call.userId())
-            call.respondList(quizzes)
+            val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
+            val pageSize = (call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+            val (quizzes, total) = quizService.getTeacherQuizzes(call.userId(), page, pageSize)
+            call.respondPaged(quizzes, total, page, pageSize)
         }
 
         route("/{quizId}") {

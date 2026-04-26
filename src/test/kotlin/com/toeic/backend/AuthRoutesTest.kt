@@ -6,6 +6,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.int
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -161,6 +162,8 @@ class AuthRoutesTest {
             withAuth(token)
         }
 
-        assertEquals(HttpStatusCode.NoContent, classesResponse.status)
+        // Paginated endpoint always returns 200 even for empty results
+        assertEquals(HttpStatusCode.OK, classesResponse.status)
+        assertEquals(0, classesResponse.body<JsonObject>()["total"]?.jsonPrimitive?.int)
     }
 }

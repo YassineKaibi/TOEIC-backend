@@ -2,7 +2,7 @@ package com.toeic.backend.classes
 
 import com.toeic.backend.common.Role
 import com.toeic.backend.common.requireRole
-import com.toeic.backend.common.respondList
+import com.toeic.backend.common.respondPaged
 import com.toeic.backend.common.userId
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -28,8 +28,10 @@ fun Route.classRoutes(classService: ClassService) {
         get("/{classId}/students") {
             call.requireRole(Role.TEACHER)
             val classId = call.parameters["classId"]!!
-            val students = classService.getClassStudents(call.userId(), classId)
-            call.respondList(students)
+            val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
+            val pageSize = (call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+            val (students, total) = classService.getClassStudents(call.userId(), classId, page, pageSize)
+            call.respondPaged(students, total, page, pageSize)
         }
 
         delete("/{classId}/students/{studentId}") {
