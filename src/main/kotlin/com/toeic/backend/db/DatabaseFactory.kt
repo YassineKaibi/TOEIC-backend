@@ -98,12 +98,14 @@ object DatabaseFactory {
 
         // Enroll students in the class
         EnrollmentsTable.insert {
+            it[id] = "enrollment-01"
             it[classId] = "class-01"
             it[studentId] = "student-01"
             it[joinedAt] = now
         }
 
         EnrollmentsTable.insert {
+            it[id] = "enrollment-02"
             it[classId] = "class-01"
             it[studentId] = "student-02"
             it[joinedAt] = now
